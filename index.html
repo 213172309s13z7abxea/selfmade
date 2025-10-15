@@ -1,19 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IP Tracker</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IP Tracker</title>
+<style>
+  body {
+    background-color: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .container {
+    text-align: center;
+    background-color: #111;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(255,255,255,0.2);
+  }
+  h1 { margin-bottom: 20px; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>IP Information</h1>
-        <p><strong>IP Address:</strong> <span id="ip">Loading...</span></p>
-        <p><strong>Country:</strong> <span id="country">Loading...</span></p>
-        <p><strong>Approx Location:</strong> <span id="location">Loading...</span></p>
-        <p><strong>Timezone:</strong> <span id="timezone">Loading...</span></p>
-    </div>
-    <script src="script.js"></script>
+<div class="container">
+  <h1>IP Information</h1>
+  <p><strong>IP Address:</strong> <span id="ip">Loading...</span></p>
+  <p><strong>Country:</strong> <span id="country">Loading...</span></p>
+  <p><strong>Approx Location:</strong> <span id="location">Loading...</span></p>
+  <p><strong>Timezone:</strong> <span id="timezone">Loading...</span></p>
+</div>
+
+<script>
+const ipEl = document.getElementById('ip');
+const countryEl = document.getElementById('country');
+const locationEl = document.getElementById('location');
+const timezoneEl = document.getElementById('timezone');
+
+const IP_API_KEY = "c0b65d33232a4f038c6e02622cd04f99";
+const GEO_API_KEY = "70f4d8c5dc604942a9f08a8f26261856";
+const TZ_API_KEY = "4b975310867d44458fa5d6822ebfeb5e";
+
+async function fetchIPInfo() {
+  try {
+    // 1. IP Intelligence API
+    const ipRes = await fetch(`https://ipgeolocation.abstractapi.com/v1/?api_key=${GEO_API_KEY}`);
+    const ipData = await ipRes.json();
+
+    ipEl.textContent = ipData.ip_address || "N/A";
+    countryEl.textContent = ipData.country || "N/A";
+    locationEl.textContent = `${ipData.city || ""}, ${ipData.region || ""}` || "N/A";
+
+    // 2. Timezone API
+    const tzRes = await fetch(`https://timezone.abstractapi.com/v1/current_time/?api_key=${TZ_API_KEY}&location=${ipData.city}`);
+    const tzData = await tzRes.json();
+    timezoneEl.textContent = tzData.timezone_location || "N/A";
+
+  } catch (err) {
+    ipEl.textContent = "Error";
+    countryEl.textContent = "Error";
+    locationEl.textContent = "Error";
+    timezoneEl.textContent = "Error";
+    console.error(err);
+  }
+}
+
+fetchIPInfo();
+</script>
 </body>
 </html>
